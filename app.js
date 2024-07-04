@@ -5,6 +5,15 @@ App({
     const logs = wx.getStorageSync('logs') || []
     logs.unshift(Date.now())
     wx.setStorageSync('logs', logs)
+    wx.setKeepScreenOn({
+      keepScreenOn: true,
+      success: function() {
+        console.log('Screen will remain on');
+      },
+      fail: function() {
+        console.error('Failed to keep screen on');
+      }
+    });
 
     // 登录
     wx.login({
@@ -14,6 +23,10 @@ App({
     })
   },
   globalData: {
-    userInfo: null
+    userInfo: null,
+    user:'',
+    ready:false,
+    socketConnected: false,// 标识是否开启socket
+    socketMsgQueue: [] // 发送的数据，也可以是其他形式
   }
 })

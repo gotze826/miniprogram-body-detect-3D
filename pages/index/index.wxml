@@ -2,11 +2,7 @@
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="container">
     <view class="userinfo">
-      <button bindtap="onGoToPageA" style="position: relative; left: 1rpx; top: 114rpx">跳转到页面A</button>
-      <button bindtap="onGoToPageB" style="position: relative; left: 1rpx; top: 114rpx">跳转到页面B</button>
-    </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
+      <button bindtap="onGoToPageB" style="position: relative; left: 1rpx; top: 114rpx">扫描电视端二维码</button>
     </view>
   </view>
 </scroll-view>

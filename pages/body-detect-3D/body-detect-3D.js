@@ -4,8 +4,14 @@ import xrFrameBehavior from '../behavior/behavior-xrframe'
 // VK 投影矩阵参数定义
 const NEAR = 0.01
 const FAR = 1000
+const app = getApp();
+const THRESHOLD_UP = 0.1; // 上运动的阈值
+const THRESHOLD_DOWN = 0.1; // 下运动的阈值
+const THRESHOLD_LEFT = 0.15; // 左运动的阈值
+const THRESHOLD_RIGHT = 0.15; // 右运动的阈值
+const systemInfo = wx.getSystemInfoSync();
+const screenWidth = systemInfo.windowWidth;
 
-let loggerOnce = false;
 
 Component({
   behaviors: [arBehavior, xrFrameBehavior],
@@ -14,7 +20,8 @@ Component({
     widthScale: 1,      // canvas宽度缩放值
     heightScale: 0.85,   // canvas高度缩放值
     hintBoxList: [],  // 显示提示盒子列表
-    positiona: 'test',
+    positiona: '',
+    width: 1202.4375 ,
   },
   markerIndex: 0,  // 使用的 marker 索引
   hintInfo: undefined, // 提示框信息
@@ -26,6 +33,9 @@ Component({
       console.log("页面detached")
       if (wx.offThemeChange) {
         wx.offThemeChange()
+      }
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
       }
       },
       ready() {
@@ -39,6 +49,9 @@ Component({
             this.setData({theme})
           })
         }
+        this.setData({
+          width: screenWidth
+        });
       },
   },
 
@@ -83,36 +96,70 @@ Component({
           // VKSession EVENT updateAnchors
           session.on('updateAnchors', anchors => {
             // console.log("updateAnchors", anchors);
+            let lastSentTime = 0;
+            const sendInterval = 500; // 500毫秒的发送间隔
 
             const anchor = anchors[0];
+            var socketMsgQueue = [];
             // 目前只处理一个返回的躯体
-            if (anchor) {
-              // console.log('id', anchor.id);
-              // console.log('type', anchor.type);
-              // console.log('transform', anchor.transform);
-              // console.log('mesh', anchor.mesh);
-              // console.log('origin', anchor.origin);
-              // console.log('size', anchor.size);
-              // console.log('detectId', anchor.detectId);
-              // console.log('confidence', anchor.confidence);
-              // console.log('points3d', anchor.points3d);
-              let temp = anchor.points3d.toString();  
-              this.setData({positiona: temp});
-
+            if (anchor && anchor.points3d && anchor.points3d.length > 0) {
               this.bodyTransform = anchor.transform;
               this.bodyPosition3D = anchor.points3d;
-
               this.updateHintBoxVisble(this.hintBoxList, true);
 
+              const headPoint = anchor.points3d[15]; // 头部坐标
+              const footPoint = anchor.points3d[5]; // 脚部坐标
+              const leftHand = anchor.points3d[21]; // 左手坐标
+              const rightHand = anchor.points3d[20]; //右手坐标
+              
+              if (!app.globalData.ready && leftHand.y > headPoint.y) {
+                this.setData({positiona: 'ready'});
+                this.sendSocketMessage('ready');
+                app.globalData.ready = true;
+              }
+
+              // 假设 previousHeadPoint 和 previousFootPoint 用于存储上一次的坐标
+              if (!this.previousHeadPoint) {
+                this.previousHeadPoint = { x: headPoint.x, y: headPoint.y, z: headPoint.z };
+                this.previousLeftPoint = { x: leftHand.x, y: leftHand.y, z: leftHand.z };
+                this.previousRightPoint = { x: rightHand.x, y: rightHand.y, z: rightHand.z};
+                return;
+              }
+
+              // 判断上下运动
+              const isMovingUp = headPoint.y > this.previousHeadPoint.y + THRESHOLD_UP;
+              const isMovingDown = headPoint.y < this.previousHeadPoint.y - THRESHOLD_DOWN;
+
+              // 判断左右运动
+              const isMovingLeft = (leftHand.x < this.previousLeftPoint.x - THRESHOLD_LEFT) || 
+              (rightHand.x < this.previousRightPoint.x - THRESHOLD_LEFT);
+              const isMovingRight = (leftHand.x > this.previousLeftPoint.x + THRESHOLD_RIGHT) || (rightHand.x > this.previousRightPoint.x + THRESHOLD_RIGHT);
+
+              // 更新坐标以供下次比较
+              this.previousHeadPoint = { x: headPoint.x, y: headPoint.y, z: headPoint.z };
+              this.previousLeftPoint = { x: leftHand.x, y: leftHand.y, z: leftHand.z };
+              this.previousRightPoint = { x: rightHand.x, y: rightHand.y, z: rightHand.z}
+
+              // 设置运动方向的提示信息
+              if (app.globalData.ready) {
+                if (isMovingLeft) this.sendSocketMessage('left');
+                else if (isMovingRight) this.sendSocketMessage('right');
+              }
+              
+              
+              // if (isMovingUp) socketMsgQueue.push('up');
+              // else if (isMovingDown) socketMsgQueue.push('down');
+
+              this.setData({ positiona: socketMsgQueue.join(' ') });
+      
             }
           })
           
           // VKSession removeAnchors
           // 识别目标丢失时不断触发
           session.on('removeAnchors', anchors => {
-            // console.log("removeAnchors");
-
             this.updateHintBoxVisble(this.hintBoxList, false);
+            this.setData({positiona: '请回到屏幕中'});
 
           });
 
@@ -240,6 +287,31 @@ Component({
           }
         }
       }
-    }
+    },
+    
+    //发送消息函数
+    sendSocketMessage(msg) {
+      
+      if (app.globalData.socketConnected) {
+        this.setData({ positiona: msg });
+        var data1 = msg;
+        if (app.globalData.user === 'left') {
+          data1 = 'first:' + msg;
+        } else {
+          data1 = 'second:' + msg;
+        }
+        wx.sendSocketMessage({
+          data: data1,
+          success: () => {
+            console.log('Message sent:', msg);
+          },
+          fail: (error) => {
+            console.error('Failed to send message:', error);
+          }
+        })
+      } else {
+        
+      }
+    },
   },
 })
