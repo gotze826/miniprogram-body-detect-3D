@@ -28,7 +28,10 @@ export default function getBehavior() {
             const info = wx.getSystemInfoSync()
             const pixelRatio = info.pixelRatio
             const calcSize = (width, height) => {
+<<<<<<< HEAD
               console.log(`canvas size: width = ${width} , height = ${height}`)
+=======
+>>>>>>> ae7529d (add model)
               this.canvas.width = width * pixelRatio
               this.canvas.height = height * pixelRatio
               this.setData({
@@ -141,14 +144,20 @@ export default function getBehavior() {
               size: anchor.size
             })))
 
+<<<<<<< HEAD
             console.log("显示data")
             console.log(this.data)
+=======
+>>>>>>> ae7529d (add model)
           })
           session.on('removeAnchors', anchors => {
             this.data.anchor2DList = []
           })
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ae7529d (add model)
           //限制调用帧率
           let fps = 30
           let fpsInterval = 1000 / fps

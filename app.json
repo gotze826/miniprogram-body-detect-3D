@@ -3,7 +3,10 @@
     "pages/index/index",
     "pages/logs/logs",
     "pages/body-detect/body-detect1",
+<<<<<<< HEAD
     "pages/body-detect-3D/body-detect-3D",
+=======
+>>>>>>> ae7529d (add model)
     "pages/xr-frame/index"
   ],
   "window": {

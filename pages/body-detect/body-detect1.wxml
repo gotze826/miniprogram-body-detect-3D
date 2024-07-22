@@ -3,7 +3,13 @@
   <view>
     <canvas type="webgl" id="webgl" style="width: {{width}}px; height: {{height}}px" bindtouchend="onTouchEnd"></canvas>
   </view>
+<<<<<<< HEAD
   <view class="page-body-text tc" style="height:20%">提示：将摄像头对准人体, 检测到的人体将会被标记出识别框和人体部位标记点（需保证设备没有开启竖屏锁定）
+=======
+  <view class="page-body-text tc" style="height:20%; font-size: 24px; font-weight: bold;">
+  {{positiontext}}
+  <!-- 提示：将摄像头对准人体, 检测到的人体将会被标记出识别框和人体部位标记点（需保证设备没有开启竖屏锁定） -->
+>>>>>>> ae7529d (add model)
     <view wx:if="{{cameraPosition == 0}}">
         <button type="primary" bindtap="switchCamera" data-value="1" disabled="{{buttonDisable}}">切换为前置摄像头</button>
     </view>

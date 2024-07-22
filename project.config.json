@@ -17,12 +17,25 @@
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
+<<<<<<< HEAD
     }
+=======
+    },
+    "condition": true
+>>>>>>> ae7529d (add model)
   },
   "condition": {},
   "editorSetting": {
     "tabIndent": "auto",
     "tabSize": 2
   },
+<<<<<<< HEAD
   "appid": "wx1fd2a4bd7de4483f"
+=======
+  "appid": "wx1fd2a4bd7de4483f",
+  "projectArchitecture": "multiPlatform",
+  "simulatorPluginLibVersion": {
+    "wxext14566970e7e9f62": "3.0.2-8"
+  }
+>>>>>>> ae7529d (add model)
 }
