@@ -26,14 +26,9 @@ App({
     userInfo: null,
     user:'',
     ready:false,
-<<<<<<< HEAD
-    socketConnected: false,// 标识是否开启socket
-    socketMsgQueue: [] // 发送的数据，也可以是其他形式
-=======
     pose:'',
     socketConnected: false,// 标识是否开启socket
     socketMsgQueue: [], // 发送的数据，也可以是其他形式
     user:''
->>>>>>> ae7529d (add model)
   }
 })

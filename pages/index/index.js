@@ -20,21 +20,12 @@ Page({
     });
   },
   onGoToPageB: function() {
-<<<<<<< HEAD
-    wx.scanCode({
-      success: (res) => {
-        this.processQRCode(res.result);
-        // TODO: 完成调试后把页面跳转和修改值移到下面去
-        
-
-=======
     // wx.navigateTo({
     //   url: '../body-detect/body-detect1',
     // })
     wx.scanCode({
       success: (res) => {
         this.processQRCode(res.result);
->>>>>>> ae7529d (add model)
       },
       fail: (err) => {
         console.error('扫码失败', err);
@@ -55,23 +46,14 @@ Page({
       wx.connectSocket({
         url: url,
       });
-<<<<<<< HEAD
-      
-=======
   
->>>>>>> ae7529d (add model)
       wx.onSocketOpen(() => {
         console.log('WebSocket 连接成功');
         app.globalData.socketConnected = true;
         if (app.globalData.socketConnected) {
           wx.navigateTo({
-<<<<<<< HEAD
-          url: '../body-detect-3D/body-detect-3D',
-        })
-=======
             url: '../body-detect/body-detect1',
           })
->>>>>>> ae7529d (add model)
         }
         
       });
@@ -90,12 +72,8 @@ Page({
       // 断开时的动作
       wx.onSocketClose((res) => {
         console.log('WebSocket 已断开' , res)
-<<<<<<< HEAD
-        this.closeSocket()
-=======
         this.closeSocket();
         app.globalData.socketConnected = false;
->>>>>>> ae7529d (add model)
         this.data.socketStatus = 'closed'
       });
   
