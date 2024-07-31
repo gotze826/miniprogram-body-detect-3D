@@ -6,6 +6,9 @@ import {
 } from '../loaders/gltf-loader'
 
 const info = wx.getSystemInfoSync()
+const section1End = info.windowWidth / 3;
+const section2End = section1End * 2;
+const section3End = info.windowWidth;
 
 export default function getBehavior() {
   return Behavior({

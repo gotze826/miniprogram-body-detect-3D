@@ -29,6 +29,8 @@ App({
     pose:'',
     socketConnected: false,// 标识是否开启socket
     socketMsgQueue: [], // 发送的数据，也可以是其他形式
-    user:''
+    user:'',
+    threshold: 0.01, // 默认阈值
+    thresholdDetected: false
   }
 })

@@ -1,17 +1,14 @@
 // pages/body-detect/body-detect1.js
 import getBehavior from './behavior';
 import yuvBehavior from './yuvBehavior';
-import KalmanFilter from './KalmanFilter'; 
+import KalmanFilter from './KalmanFilter';
 import PoseEstimation from './pose-estimation';
 
 const NEAR = 0.001;
 const FAR = 1000;
 
-const fs = wx.getFileSystemManager();
-const filePath = `${wx.env.USER_DATA_PATH}/anchor2DList.txt`;
-
 const kalmanFilters = {}; // 用于跟踪多个目标的卡尔曼滤波器
-const poseEstimation = new PoseEstimation(); // 创建姿态估计实例
+let poseEstimation; // 创建姿态估计实例
 const app = getApp();
 
 // 顶点着色器
@@ -35,6 +32,37 @@ var FSHADER_SOURCE = `
       gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
     } else { 
       discard; 
+    }
+  }
+`;
+
+// 分区线顶点着色器
+var LINE_VSHADER_SOURCE = `
+  attribute vec4 a_Position;
+  varying vec2 v_Position;
+  void main() {
+    gl_Position = a_Position;
+    v_Position = a_Position.xy;
+  }
+`;
+
+// 分区线片元着色器（虚线）
+var LINE_FSHADER_SOURCE = `
+  #ifdef GL_ES
+  precision mediump float;
+  #endif
+  uniform vec4 u_FragColor;
+  varying vec2 v_Position;
+
+  void main() {
+    float lineWidth = 20.0; // 线宽
+    float dashSize = 0.1;
+    float gapSize = 0.05;
+    float factor = mod(v_Position.y / (dashSize + gapSize), 1.0);
+    if (factor < dashSize / (dashSize + gapSize)) {
+      gl_FragColor = u_FragColor;
+    } else {
+      discard;
     }
   }
 `;
@@ -115,6 +143,24 @@ function initVertexBuffers(gl, anchor2DList) {
   gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(a_Position);
   return n;
+}
+
+// 初始化分区线顶点缓冲区
+function initLineBuffers(gl, sections) {
+  var vertices = new Float32Array([
+    sections.section1End, -1.0, 
+    sections.section1End, 1.0, 
+    sections.section2End, -1.0, 
+    sections.section2End, 1.0
+  ]);
+
+  var vertexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+  var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(a_Position);
 }
 
 var EDGE_VSHADER_SOURCE = `
@@ -203,7 +249,10 @@ Component({
     smoothedX: 0,
     smoothedY: 0,
     currentTargetId: null,
-    positiontext:'',
+    positiontext: '',
+    jumpCount: 0,
+    squatCount: 0,
+    threshold: 0.001,
   },
   lifetimes: {
     detached() {
@@ -224,6 +273,8 @@ Component({
           this.setData({ theme });
         });
       }
+
+      poseEstimation = new PoseEstimation();
     },
   },
   methods: {
@@ -288,7 +339,8 @@ Component({
         if (!initShadersDone) {
           this.vertexProgram = initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
           this.rectEdgeProgram = initShaders(gl, EDGE_VSHADER_SOURCE, EDGE_FSHADER_SOURCE);
-          if (!this.vertexProgram || !this.rectEdgeProgram) {
+          this.lineProgram = initShaders(gl, LINE_VSHADER_SOURCE, LINE_FSHADER_SOURCE); // 初始化线条着色器
+          if (!this.vertexProgram || !this.rectEdgeProgram || !this.lineProgram) {
             console.log('初始化着色器失败');
             return;
           }
@@ -299,8 +351,16 @@ Component({
 
         let currentTarget = null;
         let minDistance = Number.MAX_VALUE;
+        let averageX = 0;
+        let count = 0;
+
         anchor2DList.forEach(anchor => {
           if (this.data.currentTargetId === null || this.data.currentTargetId === anchor.id) {
+            anchor.points.forEach(point => {
+              const { smoothedX } = this.updateKalmanFilters({ id: anchor.id, origin: point });
+              averageX += smoothedX;
+              count += 1;
+            });
             const { smoothedX, smoothedY } = this.updateKalmanFilters(anchor);
             const distance = Math.sqrt((smoothedX - anchor.origin.x) ** 2 + (smoothedY - anchor.origin.y) ** 2);
             if (distance < minDistance) {
@@ -309,6 +369,8 @@ Component({
             }
           }
         });
+
+        averageX /= count;
 
         if (currentTarget) {
           this.setData({ currentTargetId: currentTarget.id });
@@ -323,17 +385,45 @@ Component({
           const { smoothedX, smoothedY } = this.updateKalmanFilters(currentTarget);
           onDrawRectEdge(gl, smoothedX, smoothedY, currentTarget.size.width, currentTarget.size.height);
 
-          // 更新运动轨迹检测
-          poseEstimation.updateData(currentTarget.points, currentTarget.origin);
-          const movement = poseEstimation.detectMovement();
+          const info = wx.getSystemInfoSync();
+          const section1End = 1 / 3;
+          const section2End = 2 / 3;
+          const sections = {
+              section1End: section1End,
+              section2End: section2End,
+          };
+          const movement = poseEstimation.updateData(currentTarget.points, sections);
           if (movement) {
-            this.setData({positiontext: movement});
-            this.sendSocketMessage(movement);
+            console.log("Detected movement:", movement);
+            this.setData({ positiontext: movement });
+            // this.sendSocketMessage(movement);
+          }
+
+          const verticalMovement = poseEstimation.detectMovement();
+          if (verticalMovement) {
+            console.log("Detected vertical movement:", verticalMovement);
+            this.setData({ positiontext: verticalMovement });
+            // this.sendSocketMessage(verticalMovement);
           }
         }
+
+        // 绘制分区线
+        gl.useProgram(this.lineProgram);
+        gl.program = this.lineProgram;
+
+        const info = wx.getSystemInfoSync();
+        const section1End = info.windowWidth / 3;
+        const section2End = section1End * 2;
+        const sections = {
+          section1End: section1End / info.windowWidth * 2 - 1,
+          section2End: section2End / info.windowWidth * 2 - 1,
+        };
+        
+        gl.uniform4f(gl.getUniformLocation(gl.program, 'u_FragColor'), 1.0, 0.0, 0.0, 1.0); // 设置颜色为红色
+        initLineBuffers(gl, sections);
+        gl.drawArrays(gl.LINES, 0, 4);
       }
     },
-      //发送消息函数
     sendSocketMessage(msg) {
       if (app.globalData.socketConnected) {
         var data1 = msg;
