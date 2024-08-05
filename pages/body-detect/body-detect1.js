@@ -10,6 +10,7 @@ const FAR = 1000;
 const kalmanFilters = {}; // 用于跟踪多个目标的卡尔曼滤波器
 let poseEstimation; // 创建姿态估计实例
 const app = getApp();
+let position = null;
 
 // 顶点着色器
 var VSHADER_SOURCE = `
@@ -395,6 +396,7 @@ Component({
           const movement = poseEstimation.updateData(currentTarget.points, sections);
           if (movement) {
             console.log("Detected movement:", movement);
+            this.position = null;
             this.setData({ positiontext: movement });
             // this.sendSocketMessage(movement);
           }
@@ -402,7 +404,8 @@ Component({
           const verticalMovement = poseEstimation.detectMovement();
           if (verticalMovement) {
             console.log("Detected vertical movement:", verticalMovement);
-            this.setData({ positiontext: verticalMovement });
+            this.position += verticalMovement;
+            this.setData({ positiontext: this.position });
             // this.sendSocketMessage(verticalMovement);
           }
         }
