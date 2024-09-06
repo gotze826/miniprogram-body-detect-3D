@@ -398,7 +398,7 @@ Component({
             console.log("Detected movement:", movement);
             this.position = null;
             this.setData({ positiontext: movement });
-            // this.sendSocketMessage(movement);
+            this.sendSocketMessage(movement);
           }
 
           const verticalMovement = poseEstimation.detectMovement();
@@ -406,7 +406,7 @@ Component({
             console.log("Detected vertical movement:", verticalMovement);
             this.position += verticalMovement;
             this.setData({ positiontext: this.position });
-            // this.sendSocketMessage(verticalMovement);
+            this.sendSocketMessage(verticalMovement);
           }
         }
 
@@ -433,12 +433,12 @@ Component({
         if (app.globalData.user === 'left') {
           data1 = 'first:' + msg;
         } else {
-          data1 = msg;
+          data1 = 'second:' +　msg;
         }
         wx.sendSocketMessage({
           data: data1,
           success: () => {
-            console.log('Message sent:', msg);
+            console.log('Message sent:',data1);
           },
           fail: (error) => {
             console.error('Failed to send message:', error);

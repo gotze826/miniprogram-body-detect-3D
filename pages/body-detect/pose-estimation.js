@@ -129,11 +129,11 @@ class PoseEstimation {
     }
 
     if (this.verticalMovementState === 'down_detected') {
-      const timeElapsed = (currentTime - this.initialTime) / 1000; // 秒
+      const timeElapsed = (currentTime - this.initialTime) / 10; // 秒
       const yDifference = avgY - this.initialY;
       console.log(yDifference);
 
-      if (timeElapsed < 2) {
+      if (timeElapsed < 95) {
         if (yDifference > this.positionThreshold / 2) {
           console.log('检测到跳跃');
           this.actionlock = 'up';

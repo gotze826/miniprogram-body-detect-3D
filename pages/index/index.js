@@ -20,17 +20,19 @@ Page({
     });
   },
   onGoToPageB: function() {
-    wx.navigateTo({
-      url: '../body-detect/body-detect1',
-    })
-    // wx.scanCode({
-    //   success: (res) => {
-    //     this.processQRCode(res.result);
-    //   },
-    //   fail: (err) => {
-    //     console.error('扫码失败', err);
-    //   }
-    // });
+    // 先检查是否已连接WebSocket，如果是，则先断开
+    if (app.globalData.socketConnected) {
+      app.globalData.socketConnected = false;
+      this.closeSocket();
+    }
+    wx.scanCode({
+      success: (res) => {
+        this.processQRCode(res.result);
+      },
+      fail: (err) => {
+        console.error('扫码失败', err);
+      }
+    });
   },
   processQRCode: function(code) {
     // TODO: 假设二维码内容格式为 IP:PORT 或 ws://IP:PORT ？？ 需要确认这里
@@ -82,6 +84,17 @@ Page({
       });
       
     }
+  },
+  closeSocket: function() {
+    wx.closeSocket({
+      success: () => {
+        console.log('WebSocket 断开成功');
+        app.globalData.socketConnected = false;
+      },
+      fail: () => {
+        console.error('WebSocket 断开失败');
+      }
+    });
   },
   bindViewTap() {
     wx.navigateTo({
